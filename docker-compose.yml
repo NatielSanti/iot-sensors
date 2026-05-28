@@ -1,0 +1,49 @@
+version: "3.9"
+
+networks:
+  home-net:
+    driver: bridge
+
+services:
+
+  mosquitto:
+    image: eclipse-mosquitto
+    networks:
+      - home-net
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  prometheus:
+    image: prom/prometheus
+    networks:
+      - home-net
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - home-net
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  iot-sensor-server:
+    build:
+      context: ./iot-sensor-server
+      dockerfile: Dockerfile
+    image: iot-sensor-server:latest
+    container_name: iot-sensor-server
+    networks:
+      - home-net
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mosquitto
